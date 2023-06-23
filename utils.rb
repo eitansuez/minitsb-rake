@@ -17,4 +17,13 @@ module Utils
     log.info "condition passed"
   end
 
+  def run_command(cmd)
+    Open3.popen2(cmd) do |stdin, stdout, thread|
+      stdout.each_line do |line|
+        puts "> " + line
+      end
+      raise "Command failed"  unless thread.value.success?
+    end
+  end
+
 end

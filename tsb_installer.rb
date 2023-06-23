@@ -21,17 +21,17 @@ class TsbInstaller
 
   def create_cluster
     log.info "create the host cluster"
-    puts `k3d cluster create tsb-cluster \
+    run_command %Q[k3d cluster create tsb-cluster \
       --image rancher/k3s:v#{@config['k8s_version']}-k3s1 \
       --k3s-arg "--disable=traefik,servicelb@server:0" \
       --no-lb \
       --registry-create my-cluster-registry:0.0.0.0:5000 \
-      --wait`
+      --wait]
   end
 
   def deploy_metallb
     log.info "deploy metallb"
-    puts `kubectl apply -f addons/metallb-0.12.1.yaml`
+    run_command "kubectl apply -f addons/metallb-0.12.1.yaml"
   end
 
   def configure_metallb
@@ -47,18 +47,18 @@ class TsbInstaller
 
   def sync_images
     log.info "sync images"
-    puts `tctl install image-sync \
+    run_command "tctl install image-sync \
       --username #{@config['tsb_repo']['username']} \
       --apikey #{@config['tsb_repo']['apikey']} \
       --registry localhost:5000 \
       --accept-eula \
-      --parallel`
+      --parallel"
   end
 
   def create_vclusters
     log.info "create vclusters"
     for cluster in @clusters
-      puts `vcluster create #{cluster}`
+      run_command "vcluster create #{cluster}"
       `vcluster disconnect`
     end
   end
@@ -67,11 +67,11 @@ class TsbInstaller
     log.info "label cluster nodes with locality information (region/zone)"
 
     for cluster in @config['clusters']
-      puts `vcluster connect #{cluster['name']}`
+      run_command "vcluster connect #{cluster['name']}"
       nodes = `(kubectl get node -ojsonpath='{.items[].metadata.name}')`.split("\n")
       for node in nodes
-        `kubectl label node #{node} topology.kubernetes.io/region=#{cluster['region']} --overwrite=true`
-        `kubectl label node #{node} topology.kubernetes.io/zone=#{cluster['zone']} --overwrite=true`
+        run_command "kubectl label node #{node} topology.kubernetes.io/region=#{cluster['region']} --overwrite=true"
+        run_command "kubectl label node #{node} topology.kubernetes.io/zone=#{cluster['zone']} --overwrite=true"
       end
     end
   end
@@ -81,8 +81,8 @@ class TsbInstaller
       wait_for "kubectl -n tsb get managementplane managementplane 2>/dev/null", "ManagementPlane object to exist"
 
       for tsb_component in ['apiServer', 'collector', 'frontEnvoy', 'iamServer', 'mpc', 'ngac', 'oap', 'webUI']
-        `kubectl patch managementplane managementplane -n tsb --type=json \
-          -p="[{'op': 'replace', 'path': '/spec/components/#{tsb_component}/kubeSpec/deployment/affinity/podAntiAffinity/requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector/matchExpressions/0/key', 'value': 'platform.tsb.tetrate.io/demo-dummy'}]"`
+        run_command %Q[kubectl patch managementplane managementplane -n tsb --type=json \
+          -p="[{'op': 'replace', 'path': '/spec/components/#{tsb_component}/kubeSpec/deployment/affinity/podAntiAffinity/requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector/matchExpressions/0/key', 'value': 'platform.tsb.tetrate.io/demo-dummy'}]"]
       end
     }
   end
@@ -90,14 +90,14 @@ class TsbInstaller
   def install_mp
     log.info "install management plane"
 
-    puts `vcluster connect #{@mp_cluster['name']}`
+    run_command "vcluster connect #{@mp_cluster['name']}"
 
     patch_affinity
 
-    puts `tctl install demo \
+    run_command "tctl install demo \
       --cluster #{@mp_cluster['name']} \
       --registry my-cluster-registry:5000 \
-      --admin-password admin`
+      --admin-password admin"
 
     extract_mp_certs
     expose_tsb_gui
@@ -128,8 +128,8 @@ class TsbInstaller
     WantedBy=multi-user.target
     EOF`
   
-    `sudo systemctl enable tsb-gui`
-    `sudo systemctl start tsb-gui`
+    run_command "sudo systemctl enable tsb-gui"
+    run_command "sudo systemctl start tsb-gui"
   end
     
   def install_controlplanes
@@ -163,31 +163,31 @@ class TsbInstaller
   def apply_cp_configs
     log.info "apply control plane configurations"
     for cluster in @cp_clusters
-      puts `vcluster connect #{cluster}`
-      `kubectl apply -f clusteroperators.yaml`
-      `kubectl apply -f #{cluster}-controlplane-secrets.yaml`
+      run_command "vcluster connect #{cluster}"
+      run_command "kubectl apply -f clusteroperators.yaml"
+      run_command "kubectl apply -f #{cluster}-controlplane-secrets.yaml"
 
       wait_for "kubectl get controlplanes.install.tetrate.io 2>/dev/null", "ControlPlane CRD definition"
 
-      `kubectl apply -f #{cluster}-controlplane.yaml`
+      run_command "kubectl apply -f #{cluster}-controlplane.yaml"
     end
   end
 
   def deploy_scenario
     log.info "deploy scenario"
     FileUtils.cd('scenario') do
-      puts `./deploy.sh`
+      run_command "./deploy.sh"
     end
   end
 
   def scenario_info
     log.info "scenario info"
     FileUtils.cd('scenario') do
-      puts `./info.sh`
+      run_command "./info.sh"
     end
 
     public_ip = `curl -s ifconfig.me`
-    puts "mgmt plane can be accessed at: https://#{public_ip}:8443/"
+    puts "Management plane GUI can be accessed at: https://#{public_ip}:8443/"
   end
 
   def run
