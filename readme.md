@@ -12,7 +12,7 @@
 
     a. Under `tsb_repo`, enter your credentials.
 
-    a. Under `clusters`, specify your topology.
+    b. Under `clusters`, specify your topology.
 
 1. Install tools (kubectl, k9s, k3d, istioctl, tctl, vcluster, step cli)
 
