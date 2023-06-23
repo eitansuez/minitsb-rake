@@ -11,6 +11,7 @@
 1. On the VM, copy `config.yaml.template` to a file name `config.yaml` and edit it as follows:
 
     a. Under `tsb_repo`, enter your credentials.
+
     a. Under `clusters`, specify your topology.
 
 1. Install tools (kubectl, k9s, k3d, istioctl, tctl, vcluster, step cli)
