@@ -7,7 +7,7 @@ module Logging
   end
 
   def self.log
-    @log ||= Logger.new(STDOUT, formatter: proc {|severity, datetime, progname, msg|
+    @log ||= Logger.new(STDOUT, level: Logger::INFO, formatter: proc {|severity, datetime, progname, msg|
       color = if severity == "DEBUG"
           :white
         elsif severity == "INFO"
