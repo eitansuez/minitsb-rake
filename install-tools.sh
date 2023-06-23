@@ -11,8 +11,6 @@ function print_info {
   echo -e "${greenb}${1}${end}"
 }
 
-source lib.sh
-
 print_info "Installing kubectl"
 curl -Lo /tmp/kubectl "https://dl.k8s.io/release/v${k8s_version}/bin/linux/amd64/kubectl"
 chmod +x /tmp/kubectl
