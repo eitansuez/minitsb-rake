@@ -1,3 +1,4 @@
+require 'open3'
 
 module Utils
 
@@ -6,11 +7,11 @@ module Utils
       log.info "waiting for #{msg}"
     end
 
-    `#{command}`
-    until $?.success?
+    output, status = Open3.capture2(command)
+    until status.success?
       sleep 1
       print "."
-      `#{command}`
+      output, status = Open3.capture2(command)
     end
 
     log.info "condition passed"
