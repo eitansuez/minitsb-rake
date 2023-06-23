@@ -1,0 +1,30 @@
+---
+apiVersion: gateway.tsb.tetrate.io/v2
+kind: Group
+metadata:
+  tenant: tetrate
+  organization: tetrate
+  workspace: tier1-ws
+  name: tier1-gateway-group
+spec:
+  displayName: tier1 gateway group
+  description: for tier1-gateway-group
+  namespaceSelector:
+    names:
+    - "t1/tier1"
+  configMode: BRIDGED
+---
+apiVersion: gateway.tsb.tetrate.io/v2
+kind: Group
+metadata:
+  organization: tetrate
+  tenant: tetrate
+  workspace: bookinfo-ws
+  name: bookinfo-gw
+spec:
+  namespaceSelector:
+    names:
+    - "c1/bookinfo"
+    - "c2/bookinfo"
+  configMode: BRIDGED
+

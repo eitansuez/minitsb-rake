@@ -1,0 +1,16 @@
+k8s_version: "1.25.9"
+istio_version: "1.15.7"
+tsb_repo:
+  username: johndoe
+  apikey: qqqqq
+clusters:
+- name: t1
+  region: us-central1
+  zone: us-central1-a
+  is_mp: true
+- name: c1
+  region: us-central1
+  zone: us-central1-a
+- name: c2
+  region: us-east1
+  zone: us-east1-a

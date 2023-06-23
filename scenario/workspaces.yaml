@@ -1,0 +1,40 @@
+---
+apiversion: api.tsb.tetrate.io/v2
+kind: Workspace
+metadata:
+  tenant: tetrate
+  organization: tetrate
+  name: tier1-ws
+spec:
+  description: for tier1
+  displayName: tier1
+  namespaceSelector:
+    names:
+    - "t1/tier1"
+---
+apiversion: api.tsb.tetrate.io/v2
+kind: Workspace
+metadata:
+  organization: tetrate
+  tenant: tetrate
+  name: bookinfo-ws
+spec:
+  namespaceSelector:
+    names:
+    - "c1/bookinfo"
+    - "c2/bookinfo"
+---
+apiVersion: api.tsb.tetrate.io/v2
+kind: WorkspaceSetting
+metadata:
+  organization: tetrate
+  tenant: tetrate
+  workspace: bookinfo-ws
+  name: bookinfo-ws-setting
+spec:
+  defaultEastWestGatewaySettings:
+  - workloadSelector:
+      namespace: bookinfo
+      labels:
+        app: tsb-gateway-bookinfo
+

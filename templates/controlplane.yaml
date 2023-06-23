@@ -1,0 +1,44 @@
+---
+apiVersion: install.tetrate.io/v1alpha1
+kind: ControlPlane
+metadata:
+  name: controlplane
+  namespace: istio-system
+spec:
+  hub: my-cluster-registry:5000
+  managementPlane:
+    host: <%= tsb_api_endpoint %>
+    port: 8443
+    clusterName: <%= cluster %>
+    selfSigned: true
+  telemetryStore:
+    elastic:
+      host: <%= tsb_api_endpoint %>
+      port: 8443
+      version: 7
+      selfSigned: true
+  components:
+    internalCertProvider:
+      certManager:
+        managed: INTERNAL
+    istio:
+      trustDomain: <%= cluster %>
+    xcp:
+      centralAuthMode: JWT
+      kubeSpec:
+        overlays:
+        - apiVersion: install.xcp.tetrate.io/v1alpha1
+          kind: EdgeXcp
+          name: edge-xcp
+          patches:
+          - path: spec.centralAuthJwt.centralSni
+            value: "central.xcp.tetrate.io"
+          - path: spec.components.edgeServer.kubeSpec.deployment.env[-1]
+            value:
+              name: ENABLE_ENHANCED_EAST_WEST_ROUTING
+              value: "true"
+          - path: spec.components.edgeServer.kubeSpec.deployment.env[-1]
+            value:
+              name: CLUSTER_STATE_RESYNC_INTERVAL
+              value: "20s"
+  meshExpansion: {}

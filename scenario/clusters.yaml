@@ -1,0 +1,31 @@
+---
+apiVersion: api.tsb.tetrate.io/v2
+kind: Cluster
+metadata:
+  name: t1
+  organization: tetrate
+spec:
+  description: Tier1 cluster
+  tokenTtl: "1h"
+  tier1Cluster: true
+---
+apiVersion: api.tsb.tetrate.io/v2
+kind: Cluster
+metadata:
+  name: c1
+  organization: tetrate
+spec:
+  description: Workload cluster 1
+  tokenTtl: "1h"
+  tier1Cluster: false
+---
+apiVersion: api.tsb.tetrate.io/v2
+kind: Cluster
+metadata:
+  name: c2
+  organization: tetrate
+spec:
+  description: Workload cluster 2
+  tokenTtl: "1h"
+  tier1Cluster: false
+

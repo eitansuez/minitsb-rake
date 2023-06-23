@@ -1,0 +1,62 @@
+#cloud-config
+# see https://cloudinit.readthedocs.io/
+package_update: true
+package_upgrade: true
+
+packages:
+- git
+- jq
+- docker.io
+- ruby-full
+- ruby-bundler
+
+users:
+- default
+- name: ubuntu
+  gecos: main user
+  lock_passwd: true
+  shell: /bin/bash
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  groups: admin, docker
+
+write_files:
+- path: /etc/sysctl.conf
+  content: |
+    fs.inotify.max_user_watches = 524288
+    fs.inotify.max_user_instances = 512
+  append: true
+- path: /etc/sudoers.d/ubuntu
+  content: |
+    ubuntu ALL=(ALL) NOPASSWD:ALL
+- path: /etc/vim/vimrc
+  content: |
+    set tabstop=2 softtabstop=2 shiftwidth=2
+    set number expandtab ruler autoindent smartindent
+    syntax enable
+    filetype plugin indent on
+- path: /etc/inputrc
+  content: |
+    "\e[A": history-search-backward
+    "\e[B": history-search-forward
+  append: true
+- path: /opt/setup-mini-tsb.sh
+  permissions: 0755
+  content: |
+    #!/bin/sh
+
+    sysctl --system
+    systemctl restart docker
+
+    wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq &&\
+        chmod +x /usr/bin/yq
+
+    cd /home/ubuntu
+    git clone https://github.com/eitansuez/minitsb-ruby
+    chown -R ubuntu:ubuntu /home/ubuntu/minitsb-ruby
+    mv minitsb-ruby/* . && rm -rf minitsb-ruby
+
+    # the only way i can get bundler to do its job..
+    sudo bundle install
+
+runcmd:
+- /opt/setup-mini-tsb.sh
