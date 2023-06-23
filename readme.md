@@ -1,11 +1,6 @@
 # Readme
 
-1. Provision the VM (see the terraform subdirectory's readme file)
-
-    ```shell
-    cd terraform
-    terraform apply
-    ```
+1. Provision the VM.  See instructions in the terraform subdirectory's [terraform/readme.md](readme file).
 
 1. Ssh onto the VM
 
@@ -13,12 +8,12 @@
     gcloud compute ssh ubuntu@tsb-vm
     ```
 
-1. Make a copy of `config.yaml.template` to a file name `config.yaml`.
+1. On the VM, copy `config.yaml.template` to a file name `config.yaml` and edit it as follows:
 
     a. Under `tsb_repo`, enter your credentials.
     a. Under `clusters`, specify your topology.
 
-1. Install tools
+1. Install tools (kubectl, k9s, k3d, istioctl, tctl, vcluster, step cli)
 
     ```shell
     ./install-tools.sh
