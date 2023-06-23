@@ -14,10 +14,10 @@
 
     b. Under `clusters`, specify your topology.
 
-1. Install tools (kubectl, k9s, k3d, istioctl, tctl, vcluster, step cli)
+1. Before proceeding, check on the status of `cloud-init` to make sure the VM setup is complete:
 
     ```shell
-    ./install-tools.sh
+    cloud-init status
     ```
 
 1. Reload .bashrc
