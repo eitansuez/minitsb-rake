@@ -1,6 +1,6 @@
 # Readme
 
-1. Provision the VM.  See instructions in the terraform subdirectory's [terraform/readme.md](readme file).
+1. Provision the VM.  See instructions in the terraform subdirectory's [readme file](terraform/readme.md).
 
 1. Ssh onto the VM
 
