@@ -8,22 +8,22 @@
     gcloud compute ssh ubuntu@tsb-vm
     ```
 
+1. Before proceeding, check on the status of `cloud-init` to make sure the VM setup is complete:
+
+     ```shell
+     cloud-init status
+     ```
+
 1. On the VM, copy `config.yaml.template` to a file name `config.yaml` and edit it as follows:
 
     a. Under `tsb_repo`, enter your credentials.
 
     b. Under `clusters`, specify your topology.
 
-1. Before proceeding, check on the status of `cloud-init` to make sure the VM setup is complete:
+1. Install tools (kubectl, k9s, k3d, istioctl, tctl, vcluster, step cli)
 
     ```shell
-    cloud-init status
-    ```
-
-1. Reload .bashrc
-
-    ```shell
-    source .bashrc
+    ./install-tools.sh
     ```
 
 1. Install TSB:
