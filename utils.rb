@@ -16,6 +16,7 @@ module Utils
 
     log.info "condition passed"
   end
+  module_function :wait_for
 
   def run_command(cmd)
     Open3.popen2(cmd) do |stdin, stdout, thread|
@@ -25,5 +26,6 @@ module Utils
       raise "Command failed"  unless thread.value.success?
     end
   end
+  module_function :run_command
 
 end
