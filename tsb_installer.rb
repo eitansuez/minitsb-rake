@@ -3,7 +3,7 @@ require 'fileutils'
 require 'erb'
 require 'open3'
 
-require './colorprint.rb'
+require './logger.rb'
 require './utils.rb'
 require './certs.rb'
 
@@ -19,7 +19,7 @@ class TsbInstaller
   attr_reader :config, :clusters, :mp_cluster, :cp_clusters
 
   def create_cluster
-    print_info "create the host cluster"
+    Logger.instance.info "create the host cluster"
     puts `k3d cluster create tsb-cluster \
       --image rancher/k3s:v#{@config['k8s_version']}-k3s1 \
       --k3s-arg "--disable=traefik,servicelb@server:0" \
@@ -29,12 +29,12 @@ class TsbInstaller
   end
 
   def deploy_metallb
-    print_info "deploy metallb"
+    Logger.instance.info "deploy metallb"
     puts `kubectl apply -f addons/metallb-0.12.1.yaml`
   end
 
   def configure_metallb
-    print_info "configure metallb"
+    Logger.instance.info "configure metallb"
     ip_prefix = `docker network inspect k3d-tsb-cluster | jq -r ".[0].IPAM.Config[0].Gateway" | awk -F . '{ print $1 "." $2 }'`.strip
 
     template_file = File.read('addons/metallb-poolconfig.yaml')
@@ -45,7 +45,7 @@ class TsbInstaller
   end
 
   def sync_images
-    print_info "sync images"
+    Logger.instance.info "sync images"
     puts `tctl install image-sync \
       --username #{@config['tsb_repo']['username']} \
       --apikey #{@config['tsb_repo']['apikey']} \
@@ -55,7 +55,7 @@ class TsbInstaller
   end
 
   def create_vclusters
-    print_info "create vclusters"
+    Logger.instance.info "create vclusters"
     for cluster in @clusters
       puts `vcluster create #{cluster}`
       `vcluster disconnect`
@@ -63,7 +63,7 @@ class TsbInstaller
   end
 
   def label_node_localities
-    print_info "label cluster nodes with locality information (region/zone)"
+    Logger.instance.info "label cluster nodes with locality information (region/zone)"
 
     for cluster in @config['clusters']
       puts `vcluster connect #{cluster['name']}`
@@ -87,7 +87,7 @@ class TsbInstaller
   end
 
   def install_mp
-    print_info "install management plane"
+    Logger.instance.info "install management plane"
 
     puts `vcluster connect #{@mp_cluster['name']}`
 
@@ -103,14 +103,14 @@ class TsbInstaller
   end
 
   def extract_mp_certs
-    print_info "extract mp certs"
+    Logger.instance.info "extract mp certs"
     `kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem`
     `kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem`
     `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
   end
 
   def expose_tsb_gui
-    print_info "expose tsb gui"
+    Logger.instance.info "expose tsb gui"
     cluster_ctx="vcluster_#{@mp_cluster['name']}_vcluster-#{@mp_cluster['name']}_k3d-tsb-cluster"
   
     kubectl_fullpath=`which kubectl`.strip
@@ -132,13 +132,13 @@ class TsbInstaller
   end
     
   def install_controlplanes
-    print_info "install controlplanes"
+    Logger.instance.info "install controlplanes"
     gen_cp_configs
     apply_cp_configs
   end
 
   def gen_cp_configs
-    print_info "generate control plane configuration files"
+    Logger.instance.info "generate control plane configuration files"
     `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
 
     for cluster in @cp_clusters
@@ -160,7 +160,7 @@ class TsbInstaller
   end
 
   def apply_cp_configs
-    print_info "apply control plane configurations"
+    Logger.instance.info "apply control plane configurations"
     for cluster in @cp_clusters
       puts `vcluster connect #{cluster}`
       `kubectl apply -f clusteroperators.yaml`
@@ -173,14 +173,14 @@ class TsbInstaller
   end
 
   def deploy_scenario
-    print_info "deploy scenario"
+    Logger.instance.info "deploy scenario"
     FileUtils.cd('scenario') do
       puts `./deploy.sh`
     end
   end
 
   def scenario_info
-    print_info "scenario info"
+    Logger.instance.info "scenario info"
     FileUtils.cd('scenario') do
       puts `./info.sh`
     end

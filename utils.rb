@@ -1,9 +1,9 @@
 
-require './colorprint.rb'
+require './logger.rb'
 
 def wait_for(command, msg=nil)
   if msg
-    print_info "waiting for #{msg}"
+    Logger.instance.info "waiting for #{msg}"
   end
 
   `#{command}`
@@ -13,5 +13,5 @@ def wait_for(command, msg=nil)
     `#{command}`
   end
 
-  print_info "condition passed"
+  Logger.instance.info "condition passed"
 end

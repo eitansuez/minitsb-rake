@@ -1,17 +1,17 @@
 require 'fileutils'
-require './colorprint.rb'
+require './logger.rb'
 
 public
 
 def make_certs(clusters)
-  print_info "make istio certificates"
+  Logger.instance.info "make istio certificates"
   for cluster in clusters
     make_intermediate_cert cluster
   end
 end
 
 def install_certs(clusters)
-  print_info "install istio cacerts"
+  Logger.instance.info "install istio cacerts"
   for cluster in clusters
     puts `vcluster connect #{cluster}`
     puts `kubectl create ns istio-system`
@@ -30,7 +30,7 @@ private
 
 def make_root_cert
   if File.exist? 'certs/root-cert.pem'
-    print_warning 'skipping, root cert already exists'
+    Logger.instance.warn 'skipping, root cert already exists'
     return
   end
 
@@ -50,7 +50,7 @@ end
 def make_intermediate_cert(cluster)
   make_root_cert
   if File.exist? "certs/#{cluster}/ca-cert.pem"
-    print_warning "skipping, ca cert for cluster #{cluster} already exists"
+    Logger.instance.warn "skipping, ca cert for cluster #{cluster} already exists"
     return
   end
 
