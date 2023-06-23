@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
 
-require './tsb_installer.rb'
+require_relative 'tsb_installer'
 
 TsbInstaller.new.run()

@@ -3,9 +3,9 @@ require 'fileutils'
 require 'erb'
 require 'open3'
 
-require './logging.rb'
-require './utils.rb'
-require './certs.rb'
+require_relative 'logging'
+require_relative 'utils'
+require_relative 'certs'
 
 class TsbInstaller
   include Certs, Utils, Logging
