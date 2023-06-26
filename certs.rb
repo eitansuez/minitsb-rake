@@ -12,16 +12,15 @@ module Certs
   def install_certs(clusters)
     log.info "install istio cacerts"
     for cluster in clusters
-      puts `vcluster connect #{cluster}`
-      puts `kubectl create ns istio-system`
+      context_name = k8s_context_name(cluster)
+      puts `kubectl --context #{context_name} create ns istio-system`
       FileUtils.cd("certs/#{cluster}") do
-        puts `kubectl create secret generic cacerts -n istio-system \
+        puts `kubectl --context #{context_name} create secret generic cacerts -n istio-system \
           --from-file=ca-cert.pem \
           --from-file=ca-key.pem \
           --from-file=../root-cert.pem \
           --from-file=cert-chain.pem`
       end
-      `vcluster disconnect`
     end
   end
 

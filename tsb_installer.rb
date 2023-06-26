@@ -67,11 +67,11 @@ class TsbInstaller
     log.info "label cluster nodes with locality information (region/zone)"
 
     for cluster in @config['clusters']
-      run_command "vcluster connect #{cluster['name']}"
-      nodes = `(kubectl get node -ojsonpath='{.items[].metadata.name}')`.split("\n")
+      context_name = k8s_context_name(cluster)
+      nodes = `(kubectl --context #{context_name} get node -ojsonpath='{.items[].metadata.name}')`.split("\n")
       for node in nodes
-        run_command "kubectl label node #{node} topology.kubernetes.io/region=#{cluster['region']} --overwrite=true"
-        run_command "kubectl label node #{node} topology.kubernetes.io/zone=#{cluster['zone']} --overwrite=true"
+        run_command "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/region=#{cluster['region']} --overwrite=true"
+        run_command "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/zone=#{cluster['zone']} --overwrite=true"
       end
     end
   end
@@ -120,7 +120,7 @@ class TsbInstaller
 
   def expose_tsb_gui
     log.info "expose tsb gui"
-    cluster_ctx="vcluster_#{@mp_cluster['name']}_vcluster-#{@mp_cluster['name']}_k3d-tsb-cluster"
+    cluster_ctx=k8s_context_name(@mp_cluster['name'])
   
     kubectl_fullpath=`which kubectl`.strip
   
@@ -171,13 +171,13 @@ class TsbInstaller
   def apply_cp_configs
     log.info "apply control plane configurations"
     for cluster in @cp_clusters
-      run_command "vcluster connect #{cluster}"
-      run_command "kubectl apply -f clusteroperators.yaml"
-      run_command "kubectl apply -f #{cluster}-controlplane-secrets.yaml"
+      context_name = k8s_context_name(cluster)
+      run_command "kubectl --context #{context_name} apply -f clusteroperators.yaml"
+      run_command "kubectl --context #{context_name} apply -f #{cluster}-controlplane-secrets.yaml"
 
-      wait_for "kubectl get controlplanes.install.tetrate.io 2>/dev/null", "ControlPlane CRD definition"
+      wait_for "kubectl --context #{context_name} get controlplanes.install.tetrate.io 2>/dev/null", "ControlPlane CRD definition"
 
-      run_command "kubectl apply -f #{cluster}-controlplane.yaml"
+      run_command "kubectl --context #{context_name} apply -f #{cluster}-controlplane.yaml"
     end
   end
 
