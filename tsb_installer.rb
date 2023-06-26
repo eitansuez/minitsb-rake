@@ -2,25 +2,37 @@ require 'yaml'
 require 'fileutils'
 require 'erb'
 require 'open3'
-
-require_relative 'logging'
-require_relative 'utils'
-require_relative 'certs'
+require 'logger'
+require 'colorize'
 
 class TsbInstaller
-  include Certs, Utils, Logging
 
   def initialize
     @config = YAML.load_file('config.yaml')
     @clusters = @config['clusters'].map { |c| c['name'] }
     @mp_cluster = @config['clusters'].find { |c| c['is_mp'] }
     @cp_clusters = @config['clusters'].select { |c| !c['is_mp'] }.map { |c| c['name'] }
+
+    @log ||= Logger.new(STDOUT, level: Logger::INFO, formatter: proc {|severity, datetime, progname, msg|
+      color = if severity == "DEBUG"
+          :white
+        elsif severity == "INFO"
+          :green
+        elsif severity == "WARN"
+          :yellow
+        elsif severity == "ERROR"
+          :red
+        else
+          :light_blue
+        end
+      sprintf("%s: %s\n", datetime.strftime('%Y-%m-%d %H:%M:%S'), msg.colorize(color: color, mode: :bold))
+    })
   end
 
   attr_reader :config, :clusters, :mp_cluster, :cp_clusters
 
   def create_cluster
-    log.info "create the host cluster"
+    @log.info "create the host cluster"
     run_command %Q[k3d cluster create tsb-cluster \
       --image rancher/k3s:v#{@config['k8s_version']}-k3s1 \
       --k3s-arg "--disable=traefik,servicelb@server:0" \
@@ -30,12 +42,12 @@ class TsbInstaller
   end
 
   def deploy_metallb
-    log.info "deploy metallb"
+    @log.info "deploy metallb"
     run_command "kubectl --context k3d-tsb-cluster apply -f addons/metallb-0.12.1.yaml"
   end
 
   def configure_metallb
-    log.info "configure metallb"
+    @log.info "configure metallb"
     ip_prefix = `docker network inspect k3d-tsb-cluster | jq -r ".[0].IPAM.Config[0].Gateway" | awk -F . '{ print $1 "." $2 }'`.strip
 
     template_file = File.read('addons/metallb-poolconfig.yaml')
@@ -46,7 +58,7 @@ class TsbInstaller
   end
 
   def sync_images
-    log.info "sync images"
+    @log.info "sync images"
     run_command "tctl install image-sync \
       --username #{@config['tsb_repo']['username']} \
       --apikey #{@config['tsb_repo']['apikey']} \
@@ -56,7 +68,7 @@ class TsbInstaller
   end
 
   def create_vclusters
-    log.info "create vclusters"
+    @log.info "create vclusters"
     for cluster in @clusters
       run_command "vcluster create #{cluster}"
       `vcluster disconnect`
@@ -64,7 +76,7 @@ class TsbInstaller
   end
 
   def label_node_localities
-    log.info "label cluster nodes with locality information (region/zone)"
+    @log.info "label cluster nodes with locality information (region/zone)"
 
     for cluster in @config['clusters']
       context_name = k8s_context_name(cluster['name'])
@@ -76,12 +88,26 @@ class TsbInstaller
     end
   end
 
-  def make_the_certs
-    make_certs @clusters
+  def make_certs
+    @log.info "make istio certificates"
+    for cluster in @clusters
+      make_intermediate_cert cluster
+    end
   end
 
-  def install_the_certs
-    install_certs @clusters
+  def install_certs
+    @log.info "install istio cacerts"
+    for cluster in @clusters
+      context_name = k8s_context_name(cluster)
+      puts `kubectl --context #{context_name} create ns istio-system`
+      FileUtils.cd("certs/#{cluster}") do
+        puts `kubectl --context #{context_name} create secret generic cacerts -n istio-system \
+          --from-file=ca-cert.pem \
+          --from-file=ca-key.pem \
+          --from-file=../root-cert.pem \
+          --from-file=cert-chain.pem`
+      end
+    end
   end
 
   def patch_affinity
@@ -96,7 +122,7 @@ class TsbInstaller
   end
 
   def install_mp
-    log.info "install management plane"
+    @log.info "install management plane"
 
     run_command "vcluster connect #{@mp_cluster['name']}"
 
@@ -112,14 +138,14 @@ class TsbInstaller
   end
 
   def extract_mp_certs
-    log.info "extract mp certs"
+    @log.info "extract mp certs"
     `kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem`
     `kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem`
     `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
   end
 
   def expose_tsb_gui
-    log.info "expose tsb gui"
+    @log.info "expose tsb gui"
     cluster_ctx=k8s_context_name(@mp_cluster['name'])
   
     kubectl_fullpath=`which kubectl`.strip
@@ -141,13 +167,13 @@ class TsbInstaller
   end
     
   def install_controlplanes
-    log.info "install controlplanes"
+    @log.info "install controlplanes"
     gen_cp_configs
     apply_cp_configs
   end
 
   def gen_cp_configs
-    log.info "generate control plane configuration files"
+    @log.info "generate control plane configuration files"
     `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
 
     for cluster in @cp_clusters
@@ -169,7 +195,7 @@ class TsbInstaller
   end
 
   def apply_cp_configs
-    log.info "apply control plane configurations"
+    @log.info "apply control plane configurations"
     for cluster in @cp_clusters
       context_name = k8s_context_name(cluster)
       run_command "kubectl --context #{context_name} apply -f clusteroperators.yaml"
@@ -182,20 +208,91 @@ class TsbInstaller
   end
 
   def deploy_scenario
-    log.info "deploy scenario"
+    @log.info "deploy scenario"
     FileUtils.cd('scenario') do
       run_command "./deploy.sh"
     end
   end
 
   def scenario_info
-    log.info "scenario info"
+    @log.info "scenario info"
     FileUtils.cd('scenario') do
       run_command "./info.sh"
     end
 
     public_ip = `curl -s ifconfig.me`
     puts "Management plane GUI can be accessed at: https://#{public_ip}:8443/"
+  end
+
+  def make_root_cert
+    if File.exist? 'certs/root-cert.pem'
+      @log.warn 'skipping, root cert already exists'
+      return
+    end
+
+    certs_dir = 'certs'
+    FileUtils.mkdir(certs_dir) unless File.exist?(certs_dir)
+
+    FileUtils.cd(certs_dir) do
+      `step certificate create "Root CA" root-cert.pem root-cert.key \
+        --profile root-ca \
+        --kty RSA \
+        --size 4096 \
+        --not-after 87360h \
+        --insecure --no-password`
+    end
+  end
+
+  def make_intermediate_cert(cluster)
+    make_root_cert
+    if File.exist? "certs/#{cluster}/ca-cert.pem"
+      @log.warn "skipping, ca cert for cluster #{cluster} already exists"
+      return
+    end
+
+    cert_dir = "certs/#{cluster}"
+    FileUtils.mkdir(cert_dir) unless File.exist?(cert_dir)
+
+    FileUtils.cd(cert_dir) do
+      `step certificate create "Istio intermediate certificate for ${cluster}" ca-cert.pem ca-key.pem \
+        --profile intermediate-ca \
+        --kty RSA \
+        --size 4096 \
+        --san istiod.istio-system.svc \
+        --not-after 17520h \
+        --ca ../root-cert.pem --ca-key ../root-cert.key \
+        --insecure --no-password`
+
+      `cat ca-cert.pem ../root-cert.pem > cert-chain.pem`
+    end
+  end
+
+  def wait_for(command, msg=nil)
+    if msg
+      @log.info "waiting for #{msg}"
+    end
+
+    output, status = Open3.capture2(command)
+    until status.success?
+      sleep 1
+      print "."
+      output, status = Open3.capture2(command)
+    end
+
+    @log.info "condition passed"
+  end
+
+  def run_command(cmd)
+    Open3.popen2(cmd) do |stdin, stdout, thread|
+      stdout.each_line do |line|
+        puts "> " + line
+      end
+      raise "Command failed"  unless thread.value.success?
+    end
+  end
+
+  def k8s_context_name(vcluster_name)
+    "vcluster_#{vcluster_name}_vcluster-#{vcluster_name}_k3d-tsb-cluster"
   end
 
 end

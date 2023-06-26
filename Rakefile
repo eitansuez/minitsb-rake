@@ -34,12 +34,12 @@ end
 
 desc "Generate istio cacerts"
 task :make_certs do
-  Installer.make_the_certs
+  Installer.make_certs
 end
 
 desc "Install istio cacerts as secrets in each vcluster"
 multitask :install_certs => [:make_certs, :create_vclusters] do
-  Installer.install_the_certs
+  Installer.install_certs
 end
 
 desc "Install the TSB management plane"
