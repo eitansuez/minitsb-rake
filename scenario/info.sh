@@ -12,7 +12,6 @@ function print_command {
   echo -e "${lightblueb}${1}${end}"
 }
 
-print_info "scenario info"
 print_command "vcluster connect t1"
 print_command "export T1_GW_IP=\$(kubectl get svc -n tier1 tier1-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')\n"
 
