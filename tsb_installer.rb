@@ -67,8 +67,8 @@ class TsbInstaller
     log.info "label cluster nodes with locality information (region/zone)"
 
     for cluster in @config['clusters']
-      context_name = k8s_context_name(cluster)
-      nodes = `(kubectl --context #{context_name} get node -ojsonpath='{.items[].metadata.name}')`.split("\n")
+      context_name = k8s_context_name(cluster['name'])
+      nodes = `kubectl --context #{context_name} get node -ojsonpath='{.items[].metadata.name}'`.split("\n")
       for node in nodes
         run_command "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/region=#{cluster['region']} --overwrite=true"
         run_command "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/zone=#{cluster['zone']} --overwrite=true"
