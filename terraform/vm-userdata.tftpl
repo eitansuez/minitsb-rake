@@ -53,6 +53,7 @@ write_files:
     cd /home/ubuntu
     git clone https://github.com/eitansuez/minitsb-ruby
     chown -R ubuntu:ubuntu /home/ubuntu/minitsb-ruby
+    rm -rf minitsb-ruby/terraform
     mv minitsb-ruby/* . && rm -rf minitsb-ruby
 
     # the only way i can get bundler to do its job..
