@@ -43,7 +43,7 @@ multitask :install_certs => [:make_certs, :create_vclusters] do
 end
 
 desc "Install the TSB management plane"
-task :install_mp => [:install_certs, :configure_metallb, :sync_images] do
+task :install_mp => [:install_certs, :deploy_metallb, :sync_images] do
   Installer.install_mp
 end
 
