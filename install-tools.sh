@@ -61,11 +61,10 @@ export EDITOR=vim
 
 source <(k3d completion bash)
 source <(vcluster completion bash)
-
 source <(kubectl completion bash)
+source <(istioctl completion bash)
+
 alias k=kubectl
 complete -F __start_kubectl k
-
-source <(istioctl completion bash)
 
 EOF

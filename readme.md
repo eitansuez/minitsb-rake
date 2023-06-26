@@ -29,5 +29,5 @@
 1. Install TSB:
 
     ```shell
-    ./install-tsb.rb
+    rake
     ```

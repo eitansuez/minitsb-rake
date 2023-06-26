@@ -3,6 +3,8 @@ GEM
   specs:
     colorize (1.0.3)
     diff-lcs (1.5.0)
+    logger (1.5.3)
+    rake (13.0.6)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -16,7 +18,6 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.12.0)
     rspec-support (3.12.0)
-    singleton (0.1.1)
     yaml (0.2.1)
 
 PLATFORMS
@@ -24,8 +25,9 @@ PLATFORMS
 
 DEPENDENCIES
   colorize
+  logger
+  rake
   rspec
-  singleton
   yaml
 
 BUNDLED WITH

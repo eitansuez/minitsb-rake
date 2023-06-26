@@ -31,7 +31,7 @@ class TsbInstaller
 
   def deploy_metallb
     log.info "deploy metallb"
-    run_command "kubectl apply -f addons/metallb-0.12.1.yaml"
+    run_command "kubectl --context k3d-tsb-cluster apply -f addons/metallb-0.12.1.yaml"
   end
 
   def configure_metallb
@@ -42,7 +42,7 @@ class TsbInstaller
     metallb_startip = "#{ip_prefix}.100.100"
     metallb_stopip = "#{ip_prefix}.100.200"
     template = ERB.new(template_file)
-    Open3.capture2("kubectl apply -f -", stdin_data: template.result(binding))
+    Open3.capture2("kubectl --context k3d-tsb-cluster apply -f -", stdin_data: template.result(binding))
   end
 
   def sync_images
@@ -74,6 +74,14 @@ class TsbInstaller
         run_command "kubectl label node #{node} topology.kubernetes.io/zone=#{cluster['zone']} --overwrite=true"
       end
     end
+  end
+
+  def make_the_certs
+    make_certs @clusters
+  end
+
+  def install_the_certs
+    install_certs @clusters
   end
 
   def patch_affinity
@@ -188,27 +196,6 @@ class TsbInstaller
 
     public_ip = `curl -s ifconfig.me`
     puts "Management plane GUI can be accessed at: https://#{public_ip}:8443/"
-  end
-
-  def run
-    create_cluster
-
-    deploy_metallb
-    configure_metallb
-
-    sync_images
-
-    create_vclusters
-    label_node_localities
-
-    make_certs @clusters
-    install_certs @clusters
-
-    install_mp
-    install_controlplanes
-
-    deploy_scenario
-    scenario_info
   end
 
 end
