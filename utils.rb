@@ -28,8 +28,8 @@ module Utils
   end
   module_function :run_command
 
-  def k8s_context_name(vcluster_name) {
+  def k8s_context_name(vcluster_name)
     "vcluster_#{vcluster_name}_vcluster-#{vcluster_name}_k3d-tsb-cluster"
-  }
+  end
 
 end
