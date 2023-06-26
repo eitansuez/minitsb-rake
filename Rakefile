@@ -32,16 +32,6 @@ task :label_node_localities => :create_vclusters do
   Installer.label_node_localities
 end
 
-desc "Generate istio cacerts"
-task :make_certs do
-  Installer.make_certs
-end
-
-desc "Install istio cacerts as secrets in each vcluster"
-multitask :install_certs => [:make_certs, :create_vclusters] do
-  Installer.install_certs
-end
-
 desc "Install the TSB management plane"
 multitask :install_mp => [:install_certs, :label_node_localities, :deploy_metallb, :sync_images] do
   Installer.install_mp
@@ -57,5 +47,54 @@ task :deploy_scenario => :install_controlplanes do
   Installer.instance_exec do
     deploy_scenario
     scenario_info
+  end
+end
+
+directory 'certs'
+
+file 'certs/root-cert.pem' => ["certs"] do
+  cd('certs') do
+    run_command %Q[step certificate create "Root CA" root-cert.pem root-cert.key \
+      --profile root-ca \
+      --kty RSA \
+      --size 4096 \
+      --not-after 87360h \
+      --insecure --no-password]
+  end
+end
+
+Installer.clusters.each do |cluster|
+  directory "certs/#{cluster}"
+  file "certs/#{cluster}/ca-cert.pem" => ['certs/root-cert.pem', "certs/#{cluster}"] do
+    cd("certs/#{cluster}") do
+      run_command %Q[step certificate create "Istio intermediate certificate for #{cluster}" ca-cert.pem ca-key.pem \
+        --profile intermediate-ca \
+        --kty RSA \
+        --size 4096 \
+        --san istiod.istio-system.svc \
+        --not-after 17520h \
+        --ca ../root-cert.pem --ca-key ../root-cert.key \
+        --insecure --no-password]
+
+      run_command "cat ca-cert.pem ../root-cert.pem > cert-chain.pem"
+    end
+  end
+end
+
+desc "Generate istio cacerts"
+task :make_certs => Installer.clusters.map { |cluster| "certs/#{cluster}/ca-cert.pem" }
+
+desc "Install istio cacerts as secrets in each vcluster"
+multitask :install_certs => [:make_certs, :create_vclusters] do
+  Installer.install_certs
+end
+
+
+def run_command(cmd)
+  Open3.popen2(cmd) do |stdin, stdout, thread|
+    stdout.each_line do |line|
+      puts "> " + line
+    end
+    raise "Command failed"  unless thread.value.success?
   end
 end
