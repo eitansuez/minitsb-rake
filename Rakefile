@@ -161,27 +161,45 @@ task :label_node_localities => Config.clusters.map { |cluster| "label_#{cluster}
 
 desc "Install the TSB management plane"
 multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{Config.mp_cluster['name']}_locality", :deploy_metallb, :sync_images] do
-    sh "vcluster connect #{Config.mp_cluster['name']}"
+  mp_context = k8s_context_name(Config.mp_cluster['name'])
 
-    patch_affinity
+  output, status = Open3.capture2("kubectl --context #{mp_context} get -n tsb managementplane managementplane")
+  if status.success?
+    Log.warn "managementplane appears to be installed, skipping."
+    next
+  end
 
-    sh "tctl install demo \
-      --cluster #{Config.mp_cluster['name']} \
-      --registry my-cluster-registry:5000 \
-      --admin-password admin"
+  sh "vcluster connect #{Config.mp_cluster['name']}"
 
-    # extract mp certs..
-    `kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem`
-    `kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem`
-    `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
+  patch_affinity
 
-    expose_tsb_gui
+  sh "tctl install demo \
+    --cluster #{Config.mp_cluster['name']} \
+    --registry my-cluster-registry:5000 \
+    --admin-password admin"
 
-    sh "vcluster disconnect"
+  # extract mp certs..
+  `kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem`
+  `kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem`
+  `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
+
+  expose_tsb_gui
+
+  sh "vcluster disconnect"
 end
 
 Config.cp_clusters.each do |cluster|
   task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality"] do
+    cp_context = k8s_context_name(cluster)
+
+    output, status = Open3.capture2("kubectl --context #{context_name} get -n istio-system controlplane controlplane")
+    if status.success?
+      Log.warn "Controlplane appears to be installed on cluster #{cluster}, skipping."
+      next
+    end
+
+    Log.info("Creating host k3d cluster..")
+
     `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
 
     `tctl install cluster-service-account --cluster #{cluster} > #{cluster}-service-account.jwk`
@@ -200,11 +218,10 @@ Config.cp_clusters.each do |cluster|
     template = ERB.new(template_file)
     File.write("#{cluster}-controlplane.yaml", template.result(binding))
 
-    context_name = k8s_context_name(cluster)
-    sh "kubectl --context #{context_name} apply -f clusteroperators.yaml"
-    sh "kubectl --context #{context_name} apply -f #{cluster}-controlplane-secrets.yaml"
-    wait_for "kubectl --context #{context_name} get controlplanes.install.tetrate.io 2>/dev/null", "ControlPlane CRD definition"
-    sh "kubectl --context #{context_name} apply -f #{cluster}-controlplane.yaml"
+    sh "kubectl --context #{cp_context} apply -f clusteroperators.yaml"
+    sh "kubectl --context #{cp_context} apply -f #{cluster}-controlplane-secrets.yaml"
+    wait_for "kubectl --context #{cp_context} get controlplanes.install.tetrate.io 2>/dev/null", "ControlPlane CRD definition"
+    sh "kubectl --context #{cp_context} apply -f #{cluster}-controlplane.yaml"
   end
 end
 
