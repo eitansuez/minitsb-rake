@@ -272,7 +272,7 @@ desc "Deploy and print TSB scenario"
 task :deploy_scenario => :install_controlplanes do
   Log.info "Deploying scenario '#{Config.params['scenario']}'.."
 
-  cd("scenario/#{Config.params['scenario']}") do
+  cd("scenarios/#{Config.params['scenario']}") do
     sh "./deploy.sh"
     sh "./info.sh"
   end
