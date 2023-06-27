@@ -92,7 +92,7 @@ Config.params['clusters'].each do |cluster_entry|
 
   task "create_#{cluster}_vcluster" => :create_cluster do
     sh "vcluster create #{cluster}"
-    `vcluster disconnect`
+    sh "vcluster disconnect"
   end
 
   multitask "install_#{cluster}_cert" => ["certs/#{cluster}/ca-cert.pem", "create_#{cluster}_vcluster"] do
