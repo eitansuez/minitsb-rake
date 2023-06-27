@@ -52,12 +52,11 @@ write_files:
         chmod +x /usr/bin/yq
 
     cd /home/ubuntu
-    git clone https://github.com/eitansuez/minitsb-ruby
-    cd minitsb-ruby
-    git checkout rake-step2
+    git clone https://github.com/eitansuez/minitsb-rake
+    cd minitsb-rake
     chown -R ubuntu:ubuntu .
-    # rm -rf minitsb-ruby/terraform
-    # mv minitsb-ruby/* . && rm -rf minitsb-ruby
+    # rm -rf minitsb-rake/terraform
+    # mv minitsb-rake/* . && rm -rf minitsb-rake
 
     # the only way i can get bundler to do its job..
     sudo bundle install
