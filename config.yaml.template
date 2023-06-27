@@ -3,6 +3,7 @@ istio_version: "1.15.7"
 tsb_repo:
   username: johndoe
   apikey: qqqqq
+scenario: tsb-training
 clusters:
 - name: t1
   region: us-central1

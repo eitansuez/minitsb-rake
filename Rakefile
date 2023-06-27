@@ -261,9 +261,9 @@ task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{
 
 desc "Deploy and print TSB scenario"
 task :deploy_scenario => :install_controlplanes do
-  Log.info "Deploying scenario.."
+  Log.info "Deploying scenario '#{Config.params['scenario']}'.."
 
-  cd('scenario') do
+  cd("scenario/#{Config.params['scenario']}") do
     sh "./deploy.sh"
     sh "./info.sh"
   end
