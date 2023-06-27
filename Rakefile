@@ -66,6 +66,8 @@ end
 
 desc "Synchronize TSB container images to local registry"
 task :sync_images => :create_cluster do
+  Log.info("Sync'ing images..")
+
   sh "tctl install image-sync \
     --username #{Config.params['tsb_repo']['username']} \
     --apikey #{Config.params['tsb_repo']['apikey']} \
@@ -126,6 +128,8 @@ Config.params['clusters'].each do |cluster_entry|
       next
     end
 
+    Log.info "Installing cacerts on #{cluster}.."
+
     sh "kubectl --context #{context_name} create ns istio-system"
     cd("certs/#{cluster}") do
       sh "kubectl --context #{context_name} create secret generic cacerts -n istio-system \
@@ -137,6 +141,7 @@ Config.params['clusters'].each do |cluster_entry|
   end
 
   task "label_#{cluster}_locality" => "create_#{cluster}_vcluster" do
+    Log.info "Labeling nodes for #{cluster} with region and zone information.."
     context_name = k8s_context_name(cluster)
     nodes = `kubectl --context #{context_name} get node -ojsonpath='{.items[].metadata.name}'`.split("\n")
     for node in nodes
@@ -198,7 +203,7 @@ Config.cp_clusters.each do |cluster|
       next
     end
 
-    Log.info("Creating host k3d cluster..")
+    Log.info("Installing control plane on #{cluster}..")
 
     `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
 
@@ -230,6 +235,8 @@ task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{
 
 desc "Deploy and print TSB scenario"
 task :deploy_scenario => :install_controlplanes do
+  Log.info "Deploying scenario.."
+
   cd('scenario') do
     sh "./deploy.sh"
     sh "./info.sh"
