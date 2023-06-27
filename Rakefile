@@ -147,6 +147,8 @@ multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{
     `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
 
     expose_tsb_gui
+
+    sh "vcluster disconnect"
 end
 
 Config.cp_clusters.each do |cluster|
