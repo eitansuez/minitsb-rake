@@ -235,7 +235,7 @@ Config.cp_clusters.each do |cluster|
     File.write("generated-artifacts/#{cluster}/controlplane.yaml", template.result(binding))
   end
 
-  task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality", 'generated-artifacts/clusteroperators.yaml', "generated-artifacts/#{cluster}/contorlplane-secrets.yaml", "generated-artifacts/#{cluster}/controlplane.yaml"] do
+  task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality", 'generated-artifacts/clusteroperators.yaml', "generated-artifacts/#{cluster}/controlplane-secrets.yaml", "generated-artifacts/#{cluster}/controlplane.yaml"] do
     cp_context = k8s_context_name(cluster)
 
     output, status = Open3.capture2("kubectl --context #{cp_context} get -n istio-system controlplane controlplane")
