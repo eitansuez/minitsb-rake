@@ -45,7 +45,7 @@ end
 
 desc "Deploy metallb to host cluster and configure the address pool"
 task :deploy_metallb => :create_cluster do
-  output, status = Open3.capture2("kubectl --context k3d-tsb-cluster get ns metallb-system")
+  output, status = Open3.capture2("kubectl --context k3d-tsb-cluster get ns metallb-system 2>/dev/null")
   if status.success?
     Log.warn "Metallb seems to already be deployed, skipping."
     next
@@ -122,7 +122,7 @@ Config.params['clusters'].each do |cluster_entry|
   multitask "install_#{cluster}_cert" => ["certs/#{cluster}/ca-cert.pem", "create_#{cluster}_vcluster"] do
     context_name = k8s_context_name(cluster)
 
-    output, status = Open3.capture2("kubectl --context #{context_name} get secret -n istio-system cacerts")
+    output, status = Open3.capture2("kubectl --context #{context_name} get secret -n istio-system cacerts 2>/dev/null")
     if status.success?
       Log.warn "cacerts secret already exists in cluster #{cluster}, skipping."
       next
@@ -243,7 +243,7 @@ task :deploy_scenario => :install_controlplanes do
   end
   public_ip = `curl -s ifconfig.me`
   puts "Management plane GUI can be accessed at: https://#{public_ip}:8443/"
-  Log.info("..deployment complete.")
+  Log.info("..provisioning complete.")
 end
 
 
