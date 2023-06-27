@@ -27,6 +27,14 @@ task :default => :deploy_scenario
 
 desc "Create host k3d cluster"
 task :create_cluster do
+  output, status = Open3.capture2("k3d cluster get tsb-cluster")
+  if status.success?
+    Log.warn "K3d host cluster already exists, skipping."
+    next
+  end
+
+  Log.info("Creating host k3d cluster..")
+
   sh %Q[k3d cluster create tsb-cluster \
     --image rancher/k3s:v#{Config.params['k8s_version']}-k3s1 \
     --k3s-arg "--disable=traefik,servicelb@server:0" \
@@ -37,6 +45,14 @@ end
 
 desc "Deploy metallb to host cluster and configure the address pool"
 task :deploy_metallb => :create_cluster do
+  output, status = Open3.capture2("kubectl --context k3d-tsb-cluster get ns metallb-system")
+  if status.success?
+    Log.warn "Metallb seems to already be deployed, skipping."
+    next
+  end
+
+  Log.info("Deploying metallb..")
+
   sh "kubectl --context k3d-tsb-cluster apply -f addons/metallb-0.12.1.yaml"
 
   ip_prefix = `docker network inspect k3d-tsb-cluster | jq -r ".[0].IPAM.Config[0].Gateway" | awk -F . '{ print $1 "." $2 }'`.strip
@@ -91,12 +107,25 @@ Config.params['clusters'].each do |cluster_entry|
   end
 
   task "create_#{cluster}_vcluster" => :create_cluster do
+    output, status = Open3.capture2("vcluster list | grep vcluster-#{cluster}")
+    if status.success?
+      Log.warn "vcluster #{cluster} already exists, skipping."
+      next
+    end
+
     sh "vcluster create #{cluster}"
     sh "vcluster disconnect"
   end
 
   multitask "install_#{cluster}_cert" => ["certs/#{cluster}/ca-cert.pem", "create_#{cluster}_vcluster"] do
     context_name = k8s_context_name(cluster)
+
+    output, status = Open3.capture2("kubectl --context #{context_name} get secret -n istio-system cacerts")
+    if status.success?
+      Log.warn "cacerts secret already exists in cluster #{cluster}, skipping."
+      next
+    end
+
     sh "kubectl --context #{context_name} create ns istio-system"
     cd("certs/#{cluster}") do
       sh "kubectl --context #{context_name} create secret generic cacerts -n istio-system \
@@ -153,6 +182,8 @@ end
 
 Config.cp_clusters.each do |cluster|
   task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality"] do
+    `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
+
     `tctl install cluster-service-account --cluster #{cluster} > #{cluster}-service-account.jwk`
 
     `tctl install manifest control-plane-secrets \
@@ -164,7 +195,8 @@ Config.cp_clusters.each do |cluster|
       > #{cluster}-controlplane-secrets.yaml`
 
     template_file = File.read('templates/controlplane.yaml')
-    tsb_api_endpoint = `kubectl get svc -n tsb envoy --output jsonpath='{.status.loadBalancer.ingress[0].ip}'`
+    mp_context = k8s_context_name(Config.mp_cluster['name'])
+    tsb_api_endpoint = `kubectl --context #{mp_context} get svc -n tsb envoy --output jsonpath='{.status.loadBalancer.ingress[0].ip}'`
     template = ERB.new(template_file)
     File.write("#{cluster}-controlplane.yaml", template.result(binding))
 
@@ -177,13 +209,10 @@ Config.cp_clusters.each do |cluster|
 end
 
 desc "Install the TSB control planes"
-task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{cluster}" } do
-  `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
-end
+task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{cluster}" }
 
 desc "Deploy and print TSB scenario"
 task :deploy_scenario => :install_controlplanes do
-  Log.info("Starting :deploy_scenario..")
   cd('scenario') do
     sh "./deploy.sh"
     sh "./info.sh"
