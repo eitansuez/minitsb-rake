@@ -150,7 +150,7 @@ multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{
 end
 
 Config.cp_clusters.each do |cluster|
-  multitask "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality"] do
+  task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality"] do
     `tctl install cluster-service-account --cluster #{cluster} > #{cluster}-service-account.jwk`
 
     `tctl install manifest control-plane-secrets \
