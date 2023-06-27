@@ -4,6 +4,13 @@ This repository is derived from Bart Van Bos' excellent [tsb-single-vm](https://
 
 The idea is to leverage [rake](https://ruby.github.io/rake/) for provisioning TSB.
 
+For learning Rake, I recommend Jim Weirich's two presentations:
+
+1. [Basic Rake](https://youtu.be/AFPWDzHWjEY)
+1. [Power Rake](https://youtu.be/KaEqZtulOus)
+
+## Basic recipe
+
 1. Provision the VM.  See instructions in the terraform subdirectory's [readme file](terraform/readme.md).
 
 1. Ssh onto the VM
