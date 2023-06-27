@@ -27,7 +27,7 @@ task :default => :deploy_scenario
 
 desc "Create host k3d cluster"
 task :create_cluster do
-  output, status = Open3.capture2("k3d cluster get tsb-cluster")
+  output, status = Open3.capture2("k3d cluster get tsb-cluster 2>/dev/null")
   if status.success?
     Log.warn "K3d host cluster already exists, skipping."
     next
@@ -197,7 +197,7 @@ Config.cp_clusters.each do |cluster|
   task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality"] do
     cp_context = k8s_context_name(cluster)
 
-    output, status = Open3.capture2("kubectl --context #{context_name} get -n istio-system controlplane controlplane")
+    output, status = Open3.capture2("kubectl --context #{cp_context} get -n istio-system controlplane controlplane")
     if status.success?
       Log.warn "Controlplane appears to be installed on cluster #{cluster}, skipping."
       next
