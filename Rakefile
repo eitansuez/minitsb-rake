@@ -192,7 +192,7 @@ file 'certs/mp-certs.pem' => ["certs", :install_mp] do
   sh "kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem"
 end
 
-file 'certs/es-certs.pem' => ["certs", :intall_mp] do
+file 'certs/es-certs.pem' => ["certs", :install_mp] do
   sh "kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem"
 end
 
