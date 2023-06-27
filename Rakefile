@@ -181,12 +181,14 @@ end
 
 desc "Deploy and print TSB scenario"
 task :deploy_scenario => :install_controlplanes do
+  Log.info("Starting :deploy_scenario..")
   cd('scenario') do
     sh "./deploy.sh"
     sh "./info.sh"
   end
   public_ip = `curl -s ifconfig.me`
   puts "Management plane GUI can be accessed at: https://#{public_ip}:8443/"
+  Log.info("..deployment complete.")
 end
 
 
