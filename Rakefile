@@ -58,25 +58,6 @@ task :sync_images => :create_cluster do
     --parallel"
 end
 
-desc "Install the TSB management plane"
-multitask :install_mp => [:install_certs, :label_node_localities, :deploy_metallb, :sync_images] do
-    sh "vcluster connect #{Config.mp_cluster['name']}"
-
-    patch_affinity
-
-    sh "tctl install demo \
-      --cluster #{Config.mp_cluster['name']} \
-      --registry my-cluster-registry:5000 \
-      --admin-password admin"
-
-    # extract mp certs..
-    `kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem`
-    `kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem`
-    `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
-
-    expose_tsb_gui
-end
-
 directory 'certs'
 
 file 'certs/root-cert.pem' => ["certs"] do
@@ -114,7 +95,7 @@ Config.params['clusters'].each do |cluster_entry|
     `vcluster disconnect`
   end
 
-  task "install_#{cluster}_cert" => ["certs/#{cluster}/ca-cert.pem", "create_#{cluster}_vcluster"] do
+  multitask "install_#{cluster}_cert" => ["certs/#{cluster}/ca-cert.pem", "create_#{cluster}_vcluster"] do
     context_name = k8s_context_name(cluster)
     sh "kubectl --context #{context_name} create ns istio-system"
     cd("certs/#{cluster}") do
@@ -137,8 +118,39 @@ Config.params['clusters'].each do |cluster_entry|
 
 end
 
+desc "Generate istio cacerts"
+multitask :make_certs => Config.clusters.map { |cluster| "certs/#{cluster}/ca-cert.pem" }
+
+desc "Install istio cacerts as secrets in each vcluster"
+task :install_certs => Config.clusters.map { |cluster| "install_#{cluster}_cert" }
+
+desc "Create vclusters"
+task :create_vclusters => Config.clusters.map { |cluster| "create_#{cluster}_vcluster" }
+
+desc "Label cluster nodes with region and zone information"
+task :label_node_localities => Config.clusters.map { |cluster| "label_#{cluster}_locality" }
+
+desc "Install the TSB management plane"
+multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{Config.mp_cluster['name']}_locality", :deploy_metallb, :sync_images] do
+    sh "vcluster connect #{Config.mp_cluster['name']}"
+
+    patch_affinity
+
+    sh "tctl install demo \
+      --cluster #{Config.mp_cluster['name']} \
+      --registry my-cluster-registry:5000 \
+      --admin-password admin"
+
+    # extract mp certs..
+    `kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem`
+    `kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem`
+    `kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem`
+
+    expose_tsb_gui
+end
+
 Config.cp_clusters.each do |cluster|
-  task "install_cp_#{cluster}" => :install_mp do
+  multitask "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality"] do
     `tctl install cluster-service-account --cluster #{cluster} > #{cluster}-service-account.jwk`
 
     `tctl install manifest control-plane-secrets \
@@ -162,20 +174,8 @@ Config.cp_clusters.each do |cluster|
   end
 end
 
-desc "Generate istio cacerts"
-multitask :make_certs => Config.clusters.map { |cluster| "certs/#{cluster}/ca-cert.pem" }
-
-desc "Install istio cacerts as secrets in each vcluster"
-multitask :install_certs => Config.clusters.map { |cluster| "install_#{cluster}_cert" }
-
-desc "Create vclusters"
-multitask :create_vclusters => Config.clusters.map { |cluster| "create_#{cluster}_vcluster" }
-
-desc "Label cluster nodes with region and zone information"
-multitask :label_node_localities => Config.clusters.map { |cluster| "label_#{cluster}_locality" }
-
 desc "Install the TSB control planes"
-multitask :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{cluster}" } do
+task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{cluster}" } do
   `tctl install manifest cluster-operators --registry my-cluster-registry:5000 > clusteroperators.yaml`
 end
 
