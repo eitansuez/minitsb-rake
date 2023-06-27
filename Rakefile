@@ -168,7 +168,7 @@ desc "Install the TSB management plane"
 multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{Config.mp_cluster['name']}_locality", :deploy_metallb, :sync_images] do
   mp_context = k8s_context_name(Config.mp_cluster['name'])
 
-  output, status = Open3.capture2("kubectl --context #{mp_context} get -n tsb managementplane managementplane")
+  output, status = Open3.capture2("kubectl --context #{mp_context} get -n tsb managementplane managementplane 2>/dev/null")
   if status.success?
     Log.warn "managementplane appears to be installed, skipping."
     next
@@ -189,15 +189,18 @@ multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{
 end
 
 file 'certs/mp-certs.pem' => ["certs", :install_mp] do
-  sh "kubectl get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem"
+  mp_context = k8s_context_name(Config.mp_cluster['name'])
+  sh "kubectl --context #{mp_context} get -n istio-system secret mp-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/mp-certs.pem"
 end
 
 file 'certs/es-certs.pem' => ["certs", :install_mp] do
-  sh "kubectl get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem"
+  mp_context = k8s_context_name(Config.mp_cluster['name'])
+  sh "kubectl --context #{mp_context} get -n istio-system secret es-certs -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/es-certs.pem"
 end
 
 file 'certs/xcp-central-ca-certs.pem' => ["certs", :install_mp] do
-  sh "kubectl get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem"
+  mp_context = k8s_context_name(Config.mp_cluster['name'])
+  sh "kubectl --context #{mp_context} get -n istio-system secret xcp-central-ca-bundle -o jsonpath='{.data.ca\\.crt}' | base64 --decode > certs/xcp-central-ca-certs.pem"
 end
 
 directory 'generated-artifacts'
@@ -238,7 +241,7 @@ Config.cp_clusters.each do |cluster|
   task "install_cp_#{cluster}" => [:install_mp, "install_#{cluster}_cert", "label_#{cluster}_locality", 'generated-artifacts/clusteroperators.yaml', "generated-artifacts/#{cluster}/controlplane-secrets.yaml", "generated-artifacts/#{cluster}/controlplane.yaml"] do
     cp_context = k8s_context_name(cluster)
 
-    output, status = Open3.capture2("kubectl --context #{cp_context} get -n istio-system controlplane controlplane")
+    output, status = Open3.capture2("kubectl --context #{cp_context} get -n istio-system controlplane controlplane 2>/dev/null")
     if status.success?
       Log.warn "Controlplane appears to be installed on cluster #{cluster}, skipping."
       next
