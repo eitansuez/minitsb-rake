@@ -141,12 +141,21 @@ Config.params['clusters'].each do |cluster_entry|
   end
 
   task "label_#{cluster}_locality" => "create_#{cluster}_vcluster" do
+    if !( cluster_entry['region'] || cluster_entry['zone'] )
+      Log.warn "no region or zone information, skipping node labeling for cluster #{cluster}"
+      next
+    end
+
     Log.info "Labeling nodes for #{cluster} with region and zone information.."
     context_name = k8s_context_name(cluster)
     nodes = `kubectl --context #{context_name} get node -ojsonpath='{.items[].metadata.name}'`.split("\n")
     for node in nodes
-      sh "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/region=#{cluster_entry['region']} --overwrite=true"
-      sh "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/zone=#{cluster_entry['zone']} --overwrite=true"
+      if cluster_entry['region']
+        sh "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/region=#{cluster_entry['region']} --overwrite=true"
+      end
+      if cluster_entry['zone']
+        sh "kubectl --context #{context_name} label node #{node} topology.kubernetes.io/zone=#{cluster_entry['zone']} --overwrite=true"
+      end
     end
   end
 
