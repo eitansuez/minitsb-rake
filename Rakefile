@@ -82,9 +82,6 @@ file 'certs/root-cert.pem' => ["certs"] do
   cd('certs') do
     sh %Q[step certificate create "Root CA" root-cert.pem root-cert.key \
       --profile root-ca \
-      --kty RSA \
-      --size 4096 \
-      --not-after 87360h \
       --insecure --no-password]
   end
 end
@@ -97,10 +94,7 @@ Config.params['clusters'].each do |cluster_entry|
     cd("certs/#{cluster}") do
       sh %Q[step certificate create "Istio intermediate certificate for #{cluster}" ca-cert.pem ca-key.pem \
         --profile intermediate-ca \
-        --kty RSA \
-        --size 4096 \
         --san istiod.istio-system.svc \
-        --not-after 17520h \
         --ca ../root-cert.pem --ca-key ../root-cert.key \
         --insecure --no-password]
 
