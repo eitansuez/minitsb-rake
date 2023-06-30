@@ -162,16 +162,16 @@ Config.params['clusters'].each do |cluster_entry|
 end
 
 desc "Generate istio cacerts"
-multitask :make_certs => Config.clusters.map { |cluster| "certs/#{cluster}/ca-cert.pem" }
+multitask :make_certs => Config.cluster_names.map { |cluster| "certs/#{cluster}/ca-cert.pem" }
 
 desc "Install istio cacerts as secrets in each vcluster"
-task :install_certs => Config.clusters.map { |cluster| "install_#{cluster}_cert" }
+task :install_certs => Config.cluster_names.map { |cluster| "install_#{cluster}_cert" }
 
 desc "Create vclusters"
-task :create_vclusters => Config.clusters.map { |cluster| "create_#{cluster}_vcluster" }
+task :create_vclusters => Config.cluster_names.map { |cluster| "create_#{cluster}_vcluster" }
 
 desc "Label cluster nodes with region and zone information"
-task :label_node_localities => Config.clusters.map { |cluster| "label_#{cluster}_locality" }
+task :label_node_localities => Config.cluster_names.map { |cluster| "label_#{cluster}_locality" }
 
 desc "Install the TSB management plane"
 multitask :install_mp => ["install_#{Config.mp_cluster['name']}_cert", "label_#{Config.mp_cluster['name']}_locality", :deploy_metallb, :sync_images] do
@@ -220,7 +220,8 @@ file 'generated-artifacts/clusteroperators.yaml' => ['generated-artifacts'] do
   end
 end
 
-Config.cp_clusters.each do |cluster|
+Config.cp_clusters.each do |cluster_entry|
+  cluster = cluster_entry['name']
 
   directory "generated-artifacts/#{cluster}"
   file "generated-artifacts/#{cluster}/service-account.jwk" => ["generated-artifacts/#{cluster}"] do
@@ -256,6 +257,11 @@ Config.cp_clusters.each do |cluster|
       next
     end
 
+    if !cluster_entry['onboard_cluster']
+      Log.info("Skipping onboarding of cluster #{cluster} ('onboard_cluster' is set to false)")
+      next
+    end
+
     Log.info("Installing control plane on #{cluster}..")
 
     sh "kubectl --context #{cp_context} apply -f generated-artifacts/clusteroperators.yaml"
@@ -266,7 +272,7 @@ Config.cp_clusters.each do |cluster|
 end
 
 desc "Install the TSB control planes"
-task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{cluster}" }
+task :install_controlplanes => Config.cp_clusters.map { |cluster| "install_cp_#{cluster['name']}" }
 
 desc "Deploy and print TSB scenario"
 task :deploy_scenario => :install_controlplanes do

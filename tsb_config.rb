@@ -2,14 +2,24 @@ require 'yaml'
 
 class TsbConfig
 
-  def initialize
-    @params = YAML.load_file('config.yaml')
+  def initialize(config_file = 'config.yaml')
+    @params = YAML.load_file(config_file)
 
-    @clusters = @params['clusters'].map { |c| c['name'] }
+    @clusters = @params['clusters'].map { |cluster| [cluster['name'], cluster] }.to_h
+    @cluster_names = @params['clusters'].map { |c| c['name'] }
+
     @mp_cluster = @params['clusters'].find { |c| c['is_mp'] }
-    @cp_clusters = @params['clusters'].select { |c| !c['is_mp'] }.map { |c| c['name'] }
+    @cp_clusters = @params['clusters'].select { |c| !c['is_mp'] }
+
+    # default onboard_cluster to true if not specified
+    @params['clusters'].each do |cluster|
+      if !cluster.has_key?('onboard_cluster')
+        cluster['onboard_cluster'] = true
+      end
+    end
+
   end
 
-  attr_reader :params, :clusters, :mp_cluster, :cp_clusters
+  attr_reader :params, :clusters, :cluster_names, :mp_cluster, :cp_clusters
 
 end
