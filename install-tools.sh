@@ -19,7 +19,7 @@ rm -f /tmp/kubectl
 
 print_info "Installing k9s"
 curl -sLo /tmp/k9s.tar.gz "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz"
-tar xvfz /tmp/k9s.tar.gz -C /tmp
+tar -xzf /tmp/k9s.tar.gz -C /tmp
 chmod +x /tmp/k9s
 sudo install /tmp/k9s /usr/local/bin/k9s
 rm -f /tmp/k9s*
@@ -33,7 +33,7 @@ rm -f /tmp/k3d
 
 print_info "Installing istioctl"
 curl -sLo /tmp/istioctl.tar.gz "https://github.com/istio/istio/releases/download/${istio_version}/istioctl-${istio_version}-linux-amd64.tar.gz"
-tar xvfz /tmp/istioctl.tar.gz -C /tmp
+tar -xzf /tmp/istioctl.tar.gz -C /tmp
 chmod +x /tmp/istioctl
 sudo install /tmp/istioctl /usr/local/bin/istioctl
 rm -f /tmp/istioctl*
@@ -48,11 +48,11 @@ print_info "Installing vcluster"
 curl -sLo vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
 
 print_info "Installing step cli"
-wget https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.23.4/step-cli_0.23.4_amd64.deb
-sudo dpkg -i step-cli_0.23.4_amd64.deb
+wget --quiet https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.23.4/step-cli_0.23.4_amd64.deb
+sudo dpkg --install step-cli_0.23.4_amd64.deb
 rm step-cli_0.23.4_amd64.deb
 
-print_info "Enabling bash completion and add some alias"
+print_info "Appending to .bashrc file completion commands for CLIs"
 cat >> ~/.bashrc <<'EOF'
 
 #
