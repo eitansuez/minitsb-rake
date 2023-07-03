@@ -63,6 +63,7 @@ source <(k3d completion bash)
 source <(vcluster completion bash)
 source <(kubectl completion bash)
 source <(istioctl completion bash)
+source <(tctl completion bash)
 
 alias k=kubectl
 complete -F __start_kubectl k
