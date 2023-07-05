@@ -29,9 +29,9 @@ For learning Rake, I recommend Jim Weirich's two presentations:
 
     a. Under `tsb_repo`, enter your credentials.
 
-    b. Under `clusters`, specify your topology.
+    b. Select a scenario from the 'scenarios/' subdirectory.  Alternatively [build your own scenario](#scenario-convention).
 
-1. Install tools (kubectl, k9s, k3d, istioctl, tctl, vcluster, step cli)
+1. Install tools kubectl, k9s, k3d, istioctl, tctl, vcluster, and step cli:
 
     ```shell
     ./install-tools.sh
@@ -42,3 +42,15 @@ For learning Rake, I recommend Jim Weirich's two presentations:
     ```shell
     rake
     ```
+
+## Scenario convention
+
+Under the `scenarios` directory, create a new directory named after your new scenario.
+
+The contents of your scenario directory must include three files:
+
+1. `topology.yaml`: a list of `clusters`.  For each cluster, at the very least supply a name.  Fields `region` and `zone` are optional, and are useful for specifying locality.  Designate the management plane cluster with `is_mp: true`.  Workload clusters are onboarded by default.  Can optionally specify not to onboard a workload cluster with `onboard_cluster: false`.  See existing scenarios for an example of a topology.
+
+1. `deploy.sh`: a script that applies Kubernetes and TSB resources to build a scenario (deploy an application, configure ingress, etc..).  This script is often accompanied with Kubernetes and TSB yaml files that are applied by the script.  See existing scenarios for an example.
+
+1. `info.sh`: a script that outputs any information you wish the user to have including sample commands to exercise or generate a load against a deployed application.

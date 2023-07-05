@@ -5,6 +5,14 @@ class TsbConfig
   def initialize(config_file = 'config.yaml')
     @params = YAML.load_file(config_file)
 
+    scenario = @params['scenario']
+    base_path = File.dirname(config_file)
+
+    topology_file = "#{base_path}/scenarios/#{scenario}/topology.yaml"
+    topology = YAML.load_file(topology_file)
+
+    @params['clusters'] = topology['clusters']
+
     @clusters = @params['clusters'].map { |cluster| [cluster['name'], cluster] }.to_h
     @cluster_names = @params['clusters'].map { |c| c['name'] }
 

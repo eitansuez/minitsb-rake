@@ -1,0 +1,17 @@
+---
+clusters:
+- name: t1
+  region: us-central1
+  zone: us-central1-a
+  is_mp: true
+- name: c1
+  region: us-central1
+  zone: us-central1-a
+- name: c2
+  region: us-east1
+  zone: us-east1-a
+  onboard_cluster: false
+- name: c3
+  region: us-west1
+  zone: us-west1-a
+  onboard_cluster: true
