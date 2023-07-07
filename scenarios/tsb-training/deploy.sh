@@ -11,23 +11,23 @@ function wait_clusters_onboarded {
   done
 }
 
-tctl apply -f clusters.yaml
+tctl apply -f artifacts/clusters.yaml
 wait_clusters_onboarded
 
-tctl apply -f tenant.yaml
+tctl apply -f artifacts/tenant.yaml
 
 vcluster connect t1
-kubectl apply -f t1-manifest.yaml
+kubectl apply -f artifacts/t1-manifest.yaml
 
 for cluster in c1 c2; do
   vcluster connect ${cluster}
-  kubectl apply -f workload-manifest.yaml
+  kubectl apply -f artifacts/workload-manifest.yaml
   kubectl apply -n bookinfo -f https://raw.githubusercontent.com/istio/istio/master/samples/bookinfo/platform/kube/bookinfo.yaml
   kubectl apply -n bookinfo -f https://raw.githubusercontent.com/istio/istio/master/samples/sleep/sleep.yaml
 done
 
-tctl apply -f workspaces.yaml
-tctl apply -f groups.yaml
-tctl apply -f gateways.yaml
+tctl apply -f artifacts/workspaces.yaml
+tctl apply -f artifacts/groups.yaml
+tctl apply -f artifacts/gateways.yaml
 
 vcluster disconnect
