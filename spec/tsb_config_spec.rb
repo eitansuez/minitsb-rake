@@ -7,7 +7,7 @@ RSpec.describe TsbConfig do
     end
 
     it 'parses a direct field' do
-      expect(@config.params['k8s_version']).to eq "1.25.9"
+      expect(@config.params['k8s_version']).to eq "1.27.6"
     end
 
     it 'parses a nested field' do

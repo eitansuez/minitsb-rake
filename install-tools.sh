@@ -2,6 +2,7 @@
 
 k8s_version=$(yq .k8s_version config.yaml)
 istio_version=$(yq .istio_version config.yaml)
+tsb_version=$(yq .tsb_version config.yaml)
 
 # Colors
 end="\033[0m"
@@ -39,7 +40,7 @@ sudo install /tmp/istioctl /usr/local/bin/istioctl
 rm -f /tmp/istioctl*
 
 print_info "Installing tctl"
-curl -sLo /tmp/tctl "https://binaries.dl.tetrate.io/public/raw/versions/linux-amd64-1.6.2/tctl"
+curl -sLo /tmp/tctl "https://binaries.dl.tetrate.io/public/raw/versions/linux-amd64-${tsb_version}/tctl"
 chmod +x /tmp/tctl
 sudo install /tmp/tctl /usr/local/bin/tctl
 rm -f /tmp/tctl
@@ -48,9 +49,9 @@ print_info "Installing vcluster"
 curl -sLo vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
 
 print_info "Installing step cli"
-wget --quiet https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.23.4/step-cli_0.23.4_amd64.deb
-sudo dpkg --install step-cli_0.23.4_amd64.deb
-rm step-cli_0.23.4_amd64.deb
+wget --quiet https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.25.0/step-cli_0.25.0_amd64.deb
+sudo dpkg --install step-cli_0.25.0_amd64.deb
+rm step-cli_0.25.0_amd64.deb
 
 print_info "Appending to .bashrc file completion commands for CLIs"
 cat >> ~/.bashrc <<'EOF'
