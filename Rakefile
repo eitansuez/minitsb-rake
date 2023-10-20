@@ -109,7 +109,7 @@ Config.params['clusters'].each do |cluster_entry|
       next
     end
 
-    sh "vcluster create #{cluster}"
+    sh "vcluster create #{cluster} --set vcluster.image=rancher/k3s:v#{Config.params['k8s_version']}-k3s1"
     sh "vcluster disconnect"
   end
 
