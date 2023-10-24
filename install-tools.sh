@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 k8s_version=$(yq .k8s_version config.yaml)
 istio_version=$(yq .istio_version config.yaml)
 tsb_version=$(yq .tsb_version config.yaml)
@@ -53,18 +55,20 @@ wget --quiet https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.25.0/st
 sudo dpkg --install step-cli_0.25.0_amd64.deb
 rm step-cli_0.25.0_amd64.deb
 
-print_info "Appending to .bashrc file completion commands for CLIs"
+print_info "Configuring command completion for all CLIs"
+sudo bash -c "k3d completion bash > /etc/bash_completion.d/k3d"
+sudo bash -c "vcluster completion bash > /etc/bash_completion.d/vcluster"
+sudo bash -c "kubectl completion bash > /etc/bash_completion.d/kubectl"
+sudo bash -c "istioctl completion bash > /etc/bash_completion.d/istioctl"
+sudo bash -c "tctl completion bash > /etc/bash_completion.d/tctl"
+source /etc/bash_completion
+
+print_info "Appending to .bashrc some command-line conveniences"
 cat >> ~/.bashrc <<'EOF'
 
 #
 set -o vi
 export EDITOR=vim
-
-source <(k3d completion bash)
-source <(vcluster completion bash)
-source <(kubectl completion bash)
-source <(istioctl completion bash)
-source <(tctl completion bash)
 
 alias k=kubectl
 complete -F __start_kubectl k
