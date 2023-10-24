@@ -1,6 +1,6 @@
 k8s_version: "1.27.6"
 istio_version: "1.17.8"
-tsb_version: "1.7.0"
+tsb_version: "1.7.2"
 tsb_repo:
   username: johndoe
   apikey: qqqqq
